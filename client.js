@@ -24,14 +24,20 @@ btn.addEventListener("click", function() {
   };
   //req.setRequestHeader("Content-Type","multipart/form-data");
   var formData = new FormData();
-  console.log("1 uploadFilePath = "+ uploadFilePath[0].split("/").slice(-1));
-
+  formData.enctype = "multipart/form-data";
+  console.log("1 uploadFilePath = "+ getFileName(uploadFilePath[0]));
   var data = fs.readFileSync(uploadFilePath[0]);
-  //var data = fs.readFileSync('/Users/kjw_junichi/Dropbox/work/201308062108.jpg');
-  var oFileBody = '<a id="a"><b id="b">hey!</b></a>'; // 新しいファイルのボディ...
-var oBlob = new Blob([oFileBody], { type: "text/xml"});
+  console.log("data.length = " + data.length);
+  //var aryBuf = new ArrayBuffer(data.length);
+  var longInt8View = new Uint8Array(data);
+  //for(var i = 0; i < longInt8View.length; i++) {
+  //	longInt8View[i] = data[i];
+  //}
+  
+  var oBlob = new Blob([longInt8View.buffer]); //Blob(data);
 
-  formData.append("theFile",oBlob);
+  formData.append("theFile",oBlob,getFileName(uploadFilePath[0]));
+  //formData.append("theFile",data,getFileName(uploadFilePath[0]));
   console.dir(formData);
   req.send(formData);
 });
@@ -46,3 +52,7 @@ var fileOpenBtn = document.getElementById("fileOpenBtn");
 fileOpenBtn.addEventListener("click", function() {
   ipc.sendSync('openFileDialog');
 });
+
+function getFileName(path) {
+	return path.split("/").slice(-1);
+}

@@ -1,51 +1,50 @@
 /**
- * Multipart example downloading all the files to disk using co-busboy.
- * If all you want is to download the files to a temporary folder,
- * just use https://github.com/cojs/multipart instead of copying this code
- * as it handles file descriptor limits whereas this does not.
- */
-var os = require('os');
-var path = require('path');
-var koa = require('koa');
-var fs = require('co-fs');
+* Module dependencies.
+*/
+
+//var logger = require('koa-logger');
+//var serve = require('koa-static');
 var parse = require('co-busboy');
-var saveTo = require('save-to');
+var koa = require('koa');
+var fs = require('fs');
+var app = koa();
 
-var app = module.exports = koa();
+// log requests
 
-app.use(function * () {
-  // parse the multipart body
-  var parts = parse(this, {
-    autoFields: true // saves the fields to parts.field(s)
-  });
+//app.use(logger());
 
-  // create a temporary folder to store files
-  var tmpdir = path.join(os.tmpdir(), uid());
+// custom 404
 
-  // make the temporary directory
-  yield fs.mkdir(tmpdir);
+app.use(function *(next){
+  yield next;
+  if (this.body || !this.idempotent) return;
+  this.redirect('/404.html');
+});
 
-  // list of all the files
-  var files = [];
-  var file;
+// serve files from ./public
 
-  // yield each part as a stream
+//app.use(serve(__dirname + '/public'));
+
+// handle uploads
+
+app.use(function *(next){
+  // ignore non-POSTs
+  if ('POST' != this.method) return yield next;
+
+  // multipart upload
+  var parts = parse(this);
   var part;
+
   while (part = yield parts) {
-    // filename for this part
-    files.push(file = path.join(tmpdir, part.filename));
-    // save the file
-    yield saveTo(part, file);
+    var stream = fs.createWriteStream(__dirname + '/uploads/' + Math.random()+"_"+part.filename);
+    part.pipe(stream);
+    console.log('uploading %s -> %s', part.filename, stream.path);
   }
 
-  // return all the filenames as an array
-  // after all the files have finished downloading
-  console.log("files = " + files);
-  this.body = files;
-})
+  this.redirect('/');
+});
 
-if (!module.parent) app.listen(3000);
+// listen
 
-function uid() {
-  return Math.random().toString(36).slice(2);
-}
+app.listen(3000);
+console.log('listening on port 3000');

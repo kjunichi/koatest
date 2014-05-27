@@ -1,0 +1,81 @@
+<html>
+<meta charset="UTF-8">
+<video id='world' width="640" height="480" autoplay></video>
+<button onClick="start()">start</button>
+<button onClick="stop()">stop</button>
+
+<script src="RecordRTC.js"></script>
+<script>
+var video = document.getElementById("world");
+var localStream;
+
+function start() {
+    if (navigator.webkitGetUserMedia) {
+        navigator.webkitGetUserMedia({
+            audio: false,
+            video: {
+                mandatory: {
+                    chromeMediaSource: 'screen',
+                    minWidth: 1280,
+                    maxWidth: 2560,
+                    minHeight: 720,
+                    maxHeight: 1440
+                }
+            }
+        }, function (stream) {
+        	localStream = stream;
+        	window.recordRTC = RecordRTC(localStream,{type:"video",video: {
+      width: 640,
+      height: 480
+   },
+   canvas: {
+      width: 640,
+      height: 480
+   }
+   });
+        	recordRTC.startRecording();
+            var url = window.webkitURL.createObjectURL(stream);
+            //video.src = url;
+            //video.play();
+
+
+        }, function (error) {});
+    } else if (navigator.mozGetUserMedia) {
+        navigator.mozGetUserMedia({
+                video: true
+            },
+            function (stream) {
+
+                video.mozSrcObject = stream;
+                video.play();
+                streaming = true;
+            },
+            function (err) {
+                alert("An error occured! " + err);
+            }
+        );
+    } else if (navigator.getUserMedia) {
+        navigator.getUserMedia("audio, video", success, error);
+    }
+}
+
+
+function stop() {
+    if (navigator.webkitGetUserMedia) {
+    	localStream.stop();
+        //video.stop();
+        //video.src = null;
+        recordRTC.stopRecording(function (audioVideoWebMURL) {
+        window.open(audioVideoWebMURL);
+    });
+    }
+
+
+    if (video.mozSrcObject) {
+        //video.mozSrcObject.stop();
+        video.mozSrcObject = null;
+    }
+}
+</script>
+
+</html>
